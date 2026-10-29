@@ -1,7 +1,8 @@
 *.qcow2
 *.img
-
 *.iso
-
 *.log
 *.tmp
+.venv/ 
+pycache/ 
+*.pyc
