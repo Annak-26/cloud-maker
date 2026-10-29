@@ -1,0 +1,16 @@
+#cloud-config
+users:
+  - name: anna
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    groups: sudo
+    shell: /bin/bash
+    lock_passwd: false
+
+ssh_pwauth: true
+
+chpasswd:
+  users:
+    - name: anna
+      password: 418mk
+      type: text
+  expire: false
