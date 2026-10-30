@@ -3,7 +3,7 @@ import subprocess
 from pathlib import Path
 import libvirt
 import tempfile
-
+from app.img_app import img_get
 
 MAX_VMS = 5
 MAX_MEMORY = 4096
@@ -25,13 +25,13 @@ def vm_table():
     c.close()
 
 
-def vm_create(name, memory=2048, vcpus=2, hostname=None, ssh_key=None, user_data=None): 
+def vm_create(name, image="ubuntu24", memory=2048, vcpus=2, hostname=None, ssh_key=None, user_data=None): 
   c = libvirt.open("qemu:///system") 
   if c is None: 
     raise RuntimeError("Connection failed.")
   base_dir = Path("/var/lib/libvirt/images/cloud-maker") 
   work_dir = Path(__file__).resolve().parent.parent
-  base = work_dir / "noble-server-cloudimg-amd64.img"
+  base = Path(img_get(image)["path"])
   disk = base_dir / f"{name}.qcow2" 
   seed = base_dir / f"{name}-seed.iso"
 
