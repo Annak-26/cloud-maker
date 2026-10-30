@@ -4,6 +4,14 @@ from pathlib import Path
 import libvirt
 import tempfile
 
+
+MAX_VMS = 5
+MAX_MEMORY = 4096
+MAX_VCPUS = 4
+MAX_TOTAL_MEMORY = 8192
+MAX_TOTAL_VCPUS = 8
+
+
 def vm_table():
   c = libvirt.open("qemu:///system")
   if c is None:
@@ -15,6 +23,7 @@ def vm_table():
     return vms
   finally:
     c.close()
+
 
 def vm_create(name, memory=2048, vcpus=2, hostname=None, ssh_key=None, user_data=None): 
   c = libvirt.open("qemu:///system") 
@@ -34,7 +43,7 @@ def vm_create(name, memory=2048, vcpus=2, hostname=None, ssh_key=None, user_data
         raise
     else:
       raise ValueError("VM already exists.")
-
+    check(c,memory,vcpus)
     net = c.networkLookupByName("default")
     if not Path("/sys/class/net/virbr0").exists():
       net.create()
@@ -99,7 +108,6 @@ def vm_create(name, memory=2048, vcpus=2, hostname=None, ssh_key=None, user_data
     c.close()
 
 
-
 def vm_stop(name):
   c = libvirt.open("qemu:///system")
   if c is None:
@@ -132,3 +140,19 @@ def vm_delete(name):
     seed.unlink()
   finally:
     c.close()
+
+
+def check(c,memory,vcpus):
+  d = c.listAllDomains()
+  if len(d) >= MAX_VMS:
+    raise ValueError("VM Limit")
+  if not 512 <= memory <= MAX_MEMORY:
+    raise ValueError("Memory Limit")
+  if not 1 <= vcpus <= MAX_VCPUS:
+    raise ValueError("VCPU Limit")
+  all_memory = sum(domain.maxMemory() //1024 for domain in d)
+  all_vcpus = sum(domain.info()[3] for domain in d)
+  if all_memory + memory > MAX_TOTAL_MEMORY:
+     raise ValueError("Total Memory Limit")
+  if all_vcpus + vcpus > MAX_TOTAL_VCPUS:
+     raise ValueError("Total VCPU Limit")
