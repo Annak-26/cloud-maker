@@ -1,3 +1,4 @@
+import yaml
 import subprocess
 from pathlib import Path
 import libvirt
@@ -15,7 +16,7 @@ def vm_table():
   finally:
     c.close()
 
-def vm_create(name, memory=2048, vcpus=2): 
+def vm_create(name, memory=2048, vcpus=2, hostname=None, ssh_key=None, user_data=None): 
   c = libvirt.open("qemu:///system") 
   if c is None: 
     raise RuntimeError("Connection failed.")
@@ -35,18 +36,41 @@ def vm_create(name, memory=2048, vcpus=2):
       raise ValueError("VM already exists.")
 
     net = c.networkLookupByName("default")
-    if not net.isActive():
+    if not Path("/sys/class/net/virbr0").exists():
       net.create()
 
     with tempfile.TemporaryDirectory() as tmp:
       tmp = Path(tmp)
       meta = tmp / "meta-data"
+      user = tmp / "user-data"
       iso = tmp / "seed.iso"
-      meta.write_text(f"instance-id: {name}\nlocal-hostname: {name}\n")
+      host = hostname or name
+
+      meta.write_text(f"instance-id: {name}\nlocal-hostname: {host}\n")
+
+      if user_data is None:
+        config = yaml.safe_load((work_dir / "cloud-init/user-data").read_text()) or {}
+      else:
+        config = yaml.safe_load(user_data) or {}
+
+      if not isinstance(config, dict):
+        raise ValueError("Invalid user-data.")
+
+      config["hostname"] = host
+
+      if ssh_key:
+        config.setdefault("users", ["default"])
+
+        if "default" not in config["users"]:
+          raise ValueError("user-data must include the default user.")
+
+        config["ssh_authorized_keys"] = [ssh_key]
+
+      user.write_text("#cloud-config\n" + yaml.safe_dump(config, sort_keys=False))
 
       subprocess.run([
         "cloud-localds", str(iso),
-        str(work_dir / "cloud-init/user-data"),
+        str(user),
         str(meta)
       ], check=True)
 

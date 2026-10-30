@@ -8,6 +8,9 @@ class VM(BaseModel):
   name: str
   memory: int = Field(default=2048, ge=512, le=8192)
   vcpus: int = Field(default=2, ge=1, le=8)
+  hostname: str | None = None
+  ssh_key: str | None = None
+  user_data: str | None = None
 
 @app.get("/vms")
 def get_vms():
@@ -15,7 +18,7 @@ def get_vms():
 
 @app.post("/vms")
 def create_vm(vm: VM):
-  return vm_create(vm.name, vm.memory, vm.vcpus)
+  return vm_create(vm.name, vm.memory, vm.vcpus, vm.hostname, vm.ssh_key, vm.user_data)
 
 @app.post("/vms/{name}/stop")
 def stop_vm(name: str):
