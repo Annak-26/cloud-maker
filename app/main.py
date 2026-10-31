@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from app.vm_app import vm_table, vm_create, vm_stop, vm_delete
 from app.img_app import img_table, img_register
+from app.mon_app import vm_stats
 
 app = FastAPI()
 
@@ -48,3 +49,12 @@ def register_img(image: Image):
     return img_register(image.name, image.path, image.description)
   except ValueError as e:
       raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/vms/{name}/stats")
+def get_vm_stats(name: str):
+  try:
+    return vm_stats(name)
+  except ValueError as e:
+    raise HTTPException(status_code=404, detail=str(e))
+  except libvirt.libvirtError as e:
+    raise HTTPException(status_code=500, detail=str(e))
