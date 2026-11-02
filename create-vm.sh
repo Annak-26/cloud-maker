@@ -3,12 +3,13 @@ set -e
 
 VM_NAME="vm"
 URL="https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img"
-BASE_DIR="/var/lib/libvirt/images"
+BASE_DIR="/var/lib/libvirt/images/cloud-maker"
+sudo mkdir -p "$BASE_DIR"
 WORK_DIR="$(cd "$(dirname "$0")" && pwd)"
 BASE="$WORK_DIR/noble-server-cloudimg-amd64.img"
 VM_DISK="$BASE_DIR/$VM_NAME.qcow2"
-SEED_ISO="$BASE_DIR/seed.iso"
-
+SEED_ISO="$BASE_DIR/$VM_NAME-seed.iso"
+sudo chown -R $USER:$USER "$BASE_DIR"
 if [ ! -f "$BASE" ]; then
     wget -O "$BASE" "$URL"
 fi
@@ -41,4 +42,3 @@ sudo virt-install \
     --graphics none \
     --console pty,target_type=serial \
     --noautoconsole
-
