@@ -1,10 +1,17 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from app.vm_app import vm_table, vm_create, vm_stop, vm_delete
-from app.img_app import img_table, img_register
+from app.img_app import img_table, img_register, ensure_base_image
 from app.mon_app import vm_stats
 
 app = FastAPI()
+
+@app.on_event("startup")
+def startup_event():
+  try:
+    ensure_base_image()
+  except Exception as e:
+    HTTPException(status_code=400, detail=str(e))
 
 class VM(BaseModel):
   name: str
