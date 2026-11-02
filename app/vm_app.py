@@ -4,6 +4,7 @@ from pathlib import Path
 import libvirt
 import tempfile
 from app.img_app import img_get
+import time
 
 MAX_VMS = 5
 MAX_MEMORY = 4096
@@ -114,7 +115,14 @@ def vm_stop(name):
     raise RuntimeError("Connection failed.")
   try:
     d = c.lookupByName(name)
-    d.shutdown()
+    if d.isActive():
+      d.shutdown()
+      for _ in range(30):
+        if not d.isActive():
+          break
+        time.sleep(1)
+      if d.isActive():
+        d.destroy()
   finally:
     c.close()
 
