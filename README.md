@@ -1,31 +1,34 @@
 # Cloud Maker
-`Cloud Maker` - проект для создания и управления виртуальными машинами на Linux с использованием QEMU/KVM и libvirt. `Cloud Maker` позволяет автоматизировать запуск и настройку виртуальных машин, управлять ими через HTTP API, реализованный на FastAPI.
+Cloud Maker - проект для создания и управления виртуальными машинами на Linux с использованием QEMU/KVM и libvirt. Cloud Maker позволяет автоматизировать запуск и настройку виртуальных машин, управлять ими через HTTP API, реализованный на FastAPI.
 
 ## Реализованные фичи
 
 | № | Фича | Реализация |
 |---|------|------------|
-| **1** | **HTTP API для управления ВМ** | `app/main.py`: `GET /vms`, `POST /vms`, `POST /vms/{name}/stop`, `DELETE /vms/{name}`. |
-| **2** | **Cloud-init при запуске** | `app/vm_app.py`, функция `vm_create`: `user_data`, `ssh_key`, `hostname`. |
-| **6** | **Восстановление состояния** | Состояние хранится в Libvirt. |
-| **7** | **Возможность добавлять образы** | `app/img_app.py`: `GET /images` и `POST /images`. |
-| **8** | **Мониторинг ресурсов** | `app/mon_app.py`: `GET /vms/{name}/stats`. |
-| **9** | **Ограничение ресурсов (квоты)** | `app/vm_app.py`, функция `check()`. |
-| **11** | **Скрипт для проверки** | `scripts/test_api.py`. |
-| **12** | **Скрипт очистки** | `scripts/clean_up.py`. |
+| 1 | HTTP API для управления ВМ | app/main.py: GET /vms, POST /vms, POST /vms/{name}/stop, DELETE /vms/{name}. |
+| 2 | Cloud-init при запуске | app/vm_app.py, функция vm_create: user_data, ssh_key, hostname. |
+| 6 | Восстановление состояния | Состояние хранится в Libvirt. |
+| 7 | Возможность добавлять образы | app/img_app.py: GET /images и POST /images. |
+| 8 | Мониторинг ресурсов | app/mon_app.py, Prometheu + Grafana. |
+| 9 | Ограничение ресурсов (квоты) | app/vm_app.py, функция check(). |
+| 11 | Скрипт для проверки | scripts/test_api.py. |
+| 12 | Скрипт очистки | scripts/clean_up.py. |
 
 ## Структура проекта
 
 ```text
 cloud-maker/
 ├── app/
-│   ├── main.py          
+│   ├── main.py
 │   ├── vm_app.py        # Логика управления ВМ
 │   ├── img_app.py       # Логика работы с образами
 │   └── mon_app.py       # Логика мониторинга ресурсов
 ├── cloud-init/
 │   ├── user-data        # Шаблон конфигурации cloud-init по умолчанию
 │   └── meta-data
+├── monitoring/
+│   ├── prometheus.yml   # Конфигурация Prometheus
+│   └── dashboard.json   # Дашборд Grafana
 ├── scripts/
 │   ├── test_api.py      # Скрипт автоматической проверки API
 │   └── clean_up.py      # Скрипт очистки
@@ -59,7 +62,7 @@ pip install -r requirements.txt
 
 ## Инструкция по проверке базового задания
 
-1. Запускаем скрипт, который скачивает образ ubuntu24 и создает виртуальную машину с именем `vm`, объемом памяти 2048 и 2 cpu. 
+1. Запускаем скрипт, который скачивает образ ubuntu24 и создает виртуальную машину с именем vm, объемом памяти 2048 и 2 cpu. 
 
 ```bash
 chmod +x create-vm.sh
@@ -104,10 +107,48 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 python scripts/test_api.py
 ```
 
-4. При желании проверяем программу вручную. Для этого открываем в браузере Swagger UI: `http://127.0.0.1:8000/docs`
+4. При желании проверяем программу вручную. Для этого открываем в браузере Swagger UI: http://127.0.0.1:8000/docs
 
 5. После тестов освобождаем ресурсы и удаляем тестовую виртуальную машину
 
 ```bash
 python scripts/clean_up.py
 ```
+
+## Инструкция по запуску мониторинга
+
+1. Запускаем FastAPI-сервер
+
+```bash
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+2. В другом терминале запускаем Prometheus с конфигурацией проекта
+
+```bash
+prometheus --config.file=monitoring/prometheus.yml --web.listen-address=127.0.0.1:9091 --storage.tsdb.path=/tmp/cloudmaker-prometheus-data
+```
+
+3. Запускаем Grafana
+
+```bash
+sudo systemctl start grafana-server
+```
+
+4. Открываем Prometheus в браузере: http://127.0.0.1:9091
+
+Проверяем, что в разделе Status -> Targets сервис cloud-maker имеет статус UP.
+
+5. Открываем Grafana в браузере: http://127.0.0.1:3000
+
+Добавляем источник данных Prometheus с адресом http://127.0.0.1:9091.
+
+6. Импортируем дашборд из файла monitoring/dashboard.json.
+
+7. Запускаем виртуальную машину и проверяем отображение метрик на шести графиках:
+   - CPU Usage
+   - Memory Allocated
+   - Disk Read
+   - Disk Write
+   - Network RX
+   - Network TX
