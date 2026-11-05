@@ -4,3 +4,4 @@ pydantic
 libvirt-python
 requests
 PyYAML
+promrtheus-client

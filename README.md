@@ -48,7 +48,7 @@ cd cloud-maker
 
 ```bash
 sudo apt update
-sudo apt install -y libvirt-daemon-system libvirt-dev qemu-kvm virtinst cloud-image-utils python3-pip wget
+sudo apt install -y libvirt-daemon-system libvirt-dev qemu-kvm virtinst prometheus apt-transport-https cloud-image-utils python3-pip wget gnupg grafana
 ```
 
 3. Устанавливаем Python-зависимости
